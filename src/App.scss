@@ -1,0 +1,115 @@
+#root {
+  height: 100vh;
+  width: 100vw;
+
+}
+
+body{
+
+  background-image: url(assets/LOGINPAGE.jpg);
+
+
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+
+}
+.hover-image {
+  transition: transform 0.3s; /* Smooth transition on hover */
+}
+
+.hover-image:hover {
+  transform: scale(1.1); /* Enlarge the image on hover */
+}
+
+.page-link.active, .active > .page-link {
+  z-index: 3;
+  color: white !important;
+  background-color: #212529 !important;
+  border-color: #212529 !important;
+}
+
+.page-link {
+color: #1a1d20  !important;
+}
+
+
+.rdrMonth{
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.rdrMonthsVertical{
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.rdrCalendarWrapper{
+  border-radius: 30px !important;
+  height: 100% !important;
+}
+.rdrDays{
+  height: 300px !important;
+}
+
+.gradient-text {
+  font-size: 24px;
+  background: -webkit-linear-gradient(0deg, rgba(24,24,24,1) 0%, rgba(255,3,229,1) 48%, rgba(150,65,223,1) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}.gradient-text-dark {
+  font-size: 24px;
+  background: -webkit-linear-gradient(0deg, rgb(255, 255, 255) 0%, rgba(255,3,229,1) 48%, rgba(150,65,223,1) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+#leftCol {
+  position: fixed;
+  width: 150px;
+  overflow-y: scroll;
+  top: 0;
+  bottom: 0;
+}
+#sidebar-wrapper{
+  overflow-y: auto;
+  height: 500px;
+  width: 295px;
+}
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+.col-2 {
+
+  width: 12.666667% !important;
+}
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: 19px;
+  border: #5c636a;
+  border-style: dashed;
+}
+
+.dropzone-default {
+  background-color: #FFFFFF;
+}
+
+.dropzone-secondary {
+  background-color: #FFFFFF;
+}
+
+.dropzone-clickable {
+  cursor: pointer;
+}
+
+.react-datepicker-wrapper{
+  width: 100%;
+}
