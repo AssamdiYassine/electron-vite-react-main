@@ -7,33 +7,46 @@ import React, {ChangeEvent, useCallback, useEffect, useRef, useState} from 'reac
 import * as locales from 'date-fns/locale';
 import fr from 'date-fns/locale/fr';
 import { registerLocale, setDefaultLocale } from 'react-datepicker';
-
 import {Controller, useController, useForm} from 'react-hook-form';
 import * as Yup from 'yup';
 import Form from 'react-bootstrap/Form';
-import Logo from '../../assets/Logo.svg'
-import ClearIcon from '@material-ui/icons/Clear';
+ import ClearIcon from '@material-ui/icons/Clear';
 import { Calendar } from 'react-date-range';
+import 'react-datepicker/dist/react-datepicker.css';
 
- import 'react-datepicker/dist/react-datepicker.css';
+import { connectToDatabase, closeDatabaseConnection } from '../../../../../Documents/electron-vite-react-main/src/database';
 
 //  Date Picker init
 registerLocale('fr', fr);
 setDefaultLocale('fr');
+// interface Member {
+//     name: string;
+//     email: string;
+//     phone: string;
+//     whatsappPhone: string;
+//     DateOfBirth: Date;
+//     gender: string;
+//
+//     categorie:string;
+//
+//     MembershipStartDate: Date;
+//     ProfilePicture?: string;
+// }
+// interface Member {
+//     name: string;
+//     email: string;
+//     phone: string;
+//     whatsappPhone: string;
+//     DateOfBirth: Date;
+//     gender: string;
+//     categorie: string;
+//     MembershipStartDate: Date;
+//     ProfilePicture?: string;
+//     MemberPayment: string ;
+//     InsurancePayment: string;
+//     InsuranceValue: number;
+// }
 
-
-interface Member {
-    name: string;
-    email: string;
-    phone: string;
-    whatsappPhone: string;
-    DateOfBirth: Date;
-    gender: string;
-    CategoryName: string;
-    categorie?:string;
-    MembershipStartDate: Date;
-    ProfilePicture?: Blob;
-}
 
 interface  types {
     show: any;
@@ -41,27 +54,78 @@ interface  types {
     getTable: () => void;
     onSubmit?: (data: Member) => void;
     initialData?: Member;
-    is?:string;
-    conn?: any;
+
+
     category? : any[];
     rowId?:number;
 }
+// type Member = {
+//     name: string;
+//     cin: string;
+//     phone: string;
+//     whatsappPhone: string;
+//     DateOfBirth: Date;
+//     gender: string;
+//     categorie: string;
+//     MemberPayment: string;
+//     InsurancePayment: string;
+//     InsuranceValue: number;
+//     ProfilePicture:string;
+//     MembershipStartDate: Date;
+//     // Include any other properties specific to Member.
+// };
+// const schema = Yup.object().shape({
+//     name: Yup.string().required(),
+//     cin: Yup.string().required(),
+//     phone: Yup.string().required(),
+//     whatsappPhone: Yup.string().required(),
+//     DateOfBirth: Yup.date().required(),
+//     gender: Yup.string().required(),
+//     categorie: Yup.string().required(),
+//     MemberPayment: Yup.string().required('Member Payment is required'),
+//     InsurancePayment:Yup.string().required('Insurance Payment is required'),
+//     InsuranceValue:Yup.number().notRequired(),
+//     ProfilePicture:Yup.string().notRequired(),
+//     MembershipStartDate: Yup.date().required(),
+// });
+
+type Member = {
+    name: string;
+    cin: string;
+    phone: string;
+    whatsappPhone: string;
+    DateOfBirth: Date;
+    gender: string;
+    categorie: string;
+    MemberPayment: string;
+    InsurancePayment: string;
+    InsuranceValue: number | undefined;
+    ProfilePicture: string | undefined;
+    MembershipStartDate: Date;
+    // Include any other properties specific to Member.
+};
+
 const schema = Yup.object().shape({
-    name: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    phone: Yup.string().required('Phone is required'),
-    whatsappPhone: Yup.string().required('WhatsApp Phone is required'),
-    DateOfBirth: Yup.date().required('Date of Birth is required'),
-    gender: Yup.string().required('Gender is required'),
-    categorie: Yup.string().required('Category is required'),
-     MembershipStartDate: Yup.date().required('Membership Start Date is required'),
-    ProfilePicture: Yup.string().required('Profile Picture is required'),
-    // You might need to adjust the validation for ProfilePicture if needed
+    name: Yup.string().required(),
+    cin: Yup.string().required(),
+    phone: Yup.string().required(),
+    whatsappPhone: Yup.string().required(),
+    DateOfBirth: Yup.date().required(),
+    gender: Yup.string().required(),
+    categorie: Yup.string().required(),
+    MemberPayment: Yup.string().required('Member Payment is required'),
+    InsurancePayment: Yup.string().required('Insurance Payment is required'),
+    InsuranceValue: Yup.number(),
+    ProfilePicture: Yup.string(),
+    MembershipStartDate: Yup.date().required(),
 });
 
 
+
+
+
 const  AddMember: React.FC<types> = (props)=> {
-const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
+    const {show , handleClose ,getTable   ,category,  rowId } = props
     const [step, setStep] = useState(0);
     const [momberData, setMomberData] = useState<any>([]);
     const [QRCodeG, setQRCodeG] = useState('');
@@ -69,12 +133,18 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
     const [dateMembershipStartDate, setDateMembershipStartDate] = useState<Date | undefined>(undefined);
 
 
-    let [BrandcompanyThumbnail, setBrandcompanyThumbnail] = useState<any>(null);
+    let [BrandcompanyThumbnail, setBrandcompanyThumbnail] = useState('');
 
+    // @ts-ignore
     const { register,  handleSubmit,control, formState: { errors },reset,setValue,getValues } = useForm<Member>({
         resolver: yupResolver(schema),
     });
 
+    const [selectedOption, setSelectedOption] = useState('');
+
+    const handleOptionChange = (event : any) => {
+        setSelectedOption(event.target.value);
+    };
 
     useEffect(()=>{
         getTable()
@@ -83,10 +153,10 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
 
 
     useEffect(()=>{
-        setValue("ProfilePicture" ,BrandcompanyThumbnail  );
+        setValue("ProfilePicture" ,BrandcompanyThumbnail );
 
     },[BrandcompanyThumbnail])
-    // @ts-ignore
+
 
 
 
@@ -161,7 +231,8 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
         reset(); // Clear the form fields
     };
     const onSubmit = async (data:any) => {
-        setMomberData(data);
+
+        console.log(data);
         // MembershipStartDate
         let year = data.MembershipStartDate.getFullYear();
         let month = String(data.MembershipStartDate.getMonth() + 1).padStart(2, '0');
@@ -169,7 +240,7 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
 
         //   29 30 31 /7   ===>  1 /8
 
-        if (day === '29' || '30' || '31' ){
+        if (day === '29' || day ===  '30' || day ===  '31' ){
             day = '01';
             month = String(data.MembershipStartDate.getMonth() + 2).padStart(2, '0');
             if (month > '12') {
@@ -178,12 +249,14 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
             }
         }
         const MembershipStartDate = `${year}-${month}-${day}`;
-        console.log("MembershipStartDate",MembershipStartDate)
-         // MembershipStartDateNext
+
+
 
         let years = year;
         const currentMonth =month;
-        const nextMonthDate = new Date(year, currentMonth + 1, 1); // Set day to 1 to ensure next month
+
+        const nextMonthDate = new Date(year, Number(currentMonth ), 1); // Set day to 1 to ensure next month
+
         let nextMonth = nextMonthDate.getMonth() + 1;
         if (nextMonth > 12) {
             nextMonth = 1;
@@ -191,10 +264,9 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
         }
 
         const formattedNextMonth = String(nextMonth).padStart(2, '0');
+
         const days = String(day).padStart(2, '0');
         const MembershipStartDateNext = `${years}-${formattedNextMonth}-${days}`;
-
-
 
 
         // DateOfBirth
@@ -209,7 +281,7 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
         setQRCodeG(QRCodeGeni);
         const values = [
             data.name,
-            data.email,
+            data.cin,
             data.phone,
             data.whatsappPhone,
             DateOfBirth,
@@ -219,57 +291,212 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
             data.ProfilePicture,
             0,
             QRCodeGeni
-
         ];
 
         const insertQuery = `
-      INSERT INTO Members (Name, Email, Phone, whatsappPhone,  DateOfBirth,Gender , Category_id, MembershipStartDate,  ProfilePicture, isDeleted,QRcode)
+      INSERT INTO Members (Name, cin, Phone, whatsappPhone,  DateOfBirth,Gender , Category_id, MembershipStartDate,  ProfilePicture, isDeleted,QRcode)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?);
     `;
 
+        try {
+            const connection = await connectToDatabase();
 
-        await  conn.query(insertQuery, values, (err: any| null, results?: any) => {
-                if (err) {
-                    console.error('Error inserting data:', err);
-                } else {
-                    console.log('Data inserted successfully:', results);
-                }
-                // conn.end(); // Don't forget to close the connection
-            });
+      await connection.query(insertQuery , values );
 
-         const insertSubscriptionsQuery = `INSERT INTO subscriptions (MemberID, start_date, end_date, type, status, payment_status)
+
+            await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+
+
+
+
+
+
+
+        const currentDate = new Date();
+        const yearPaymentDate = currentDate.getFullYear();
+        const monthPaymentDate = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const dayPaymentDate = String(currentDate.getDate()).padStart(2, '0');
+        const PaymentDate = `${yearPaymentDate}-${monthPaymentDate}-${dayPaymentDate}`;
+        const connection0 = connectToDatabase();
+        try {
+            const connection = await connectToDatabase();
+
+            const [results ]   =  await connection.query('SELECT Max(MemberID) AS MaxMemberID  FROM Members;');
+
+
+            // @ts-ignore
+            const maxMemberID = results[0].MaxMemberID;
+            console.log('maxMemberID',maxMemberID)
+            const insertSubscriptionsQuery = `INSERT INTO subscriptions (MemberID, start_date, end_date, type, status, payment_status)
                        VALUES (?, ?, ?, ?, ?, ?)`;
 
+           await connection.query(insertSubscriptionsQuery ,  [maxMemberID, MembershipStartDate, MembershipStartDateNext, 'monthly', 'active', data.MemberPayment]  );
 
-        await  conn.query('SELECT Max(MemberID) AS MaxMemberID  FROM Members;', values, (err: any| null, results?: any) => {
-            if (err) {
-                console.error('Error inserting data:', err);
-            } else {
+            if ( data.MemberPayment === "paid"){
 
-                const maxMemberID = results[0].MaxMemberID;
+                         const values1 = [
+                            maxMemberID,
+                            PaymentDate,
+                            100
+                        ];
 
-                     conn.query(
-                    insertSubscriptionsQuery,
-                    [maxMemberID, MembershipStartDate, MembershipStartDateNext, 'monthly', 'active', 'paid'],
-                    (err : any, results :any) => {
-                        if (err) {
-                            console.log(err.code);
-                        } else {
-                            console.log(results);
-                        }
-                    }
-                );
+                        await connection.query( `  INSERT INTO Paiment (MemberID,PaymentDate,Price)  VALUES (?, ?, ?);  ` , values1 );
+              }
+
+
+        if (
+                data.InsurancePayment === "Paid"
+
+            ){
+                const values2 = [
+                    maxMemberID,
+                    200,
+                    PaymentDate,
+                    'Paid'
+
+                ];
+
+                const InsurancePayments = `
+                              INSERT INTO InsurancePayments (MemberID,PaymentAmount,PaymentDate,Status)
+                              VALUES (?, ?, ?,?);
+                            `;
+
+                await connection.query( InsurancePayments , values2 );
+
             }
-         });
+            if (
+                data.InsurancePayment === "Partial"
+
+            ){
+                const values2 = [
+                    maxMemberID,
+                    data.InsuranceValue,
+                    PaymentDate,
+                    'Partial'
+
+                ];
+                const InsurancePayments = `
+                              INSERT INTO InsurancePayments (MemberID,PaymentAmount,PaymentDate,Status)
+                              VALUES (?, ?, ?,?);
+                            `;
+                await connection.query( InsurancePayments , values2 );
+
+            }
+
+
+
+            await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+        // await  connection0.query('SELECT Max(MemberID) AS MaxMemberID  FROM Members;', (err: any| null, results?: any) => {
+        //     if (err) {
+        //         console.error('Error inserting data:', err);
+        //     } else {
+        //         const connection1 = connectToDatabase();
+        //         const maxMemberID = results[0].MaxMemberID;
+        //         console.log('maxMemberID',maxMemberID)
+        //         const insertSubscriptionsQuery = `INSERT INTO subscriptions (MemberID, start_date, end_date, type, status, payment_status)
+        //                VALUES (?, ?, ?, ?, ?, ?)`;
+        //
+        //             connection1.query(
+        //             insertSubscriptionsQuery,
+        //             [maxMemberID, MembershipStartDate, MembershipStartDateNext, 'monthly', 'active', data.MemberPayment],
+        //             (err : any, results :any) => {
+        //                 if (err) {
+        //                     console.log(err.code);
+        //                 } else {
+        //                     console.log(results);
+        //                 }
+        //             }
+        //         );
+        //         closeDatabaseConnection();
+        //         const values1 = [
+        //             maxMemberID,
+        //             PaymentDate,
+        //             100
+        //         ];
+        //         const connection2 = connectToDatabase();
+        //
+        //         const insertQuery = `
+        //                       INSERT INTO Paiment (MemberID,PaymentDate,Price)
+        //                       VALUES (?, ?, ?);
+        //                     `;
+        //            connection2.query(insertQuery, values1, (err: any| null, results?: any) => {
+        //             if (err) {
+        //                 console.error('Error inserting data:', err);
+        //             } else {
+        //                 console.log('Data inserted successfully:', results);
+        //             }
+        //         });
+        //         closeDatabaseConnection();
+        //         const connection3 = connectToDatabase();
+        //
+        //         if (
+        //             data.InsurancePayment === "Paid"
+        //
+        //         ){
+        //             const values2 = [
+        //                 maxMemberID,
+        //                 200,
+        //                 PaymentDate,
+        //                 'Paid'
+        //
+        //             ];
+        //             const InsurancePayments = `
+        //                       INSERT INTO InsurancePayments (MemberID,PaymentAmount,PaymentDate,Status)
+        //                       VALUES (?, ?, ?,?);
+        //                     `;
+        //             connection3.query(InsurancePayments, values2, (err: any| null, results?: any) => {
+        //                 if (err) {
+        //                     console.error('Error InsurancePayment data:', err);
+        //                 } else {
+        //                     console.log('Data InsurancePayment successfully:', results);
+        //                 }
+        //             });
+        //         }
+        //         if (
+        //             data.InsurancePayment === "Partial"
+        //
+        //         ){
+        //             const values2 = [
+        //                 maxMemberID,
+        //                 data.InsuranceValue,
+        //                 PaymentDate,
+        //                 'Partial'
+        //
+        //             ];
+        //             const InsurancePayments = `
+        //                       INSERT INTO InsurancePayments (MemberID,PaymentAmount,PaymentDate,Status)
+        //                       VALUES (?, ?, ?,?);
+        //                     `;
+        //             connection3.query(InsurancePayments, values2, (err: any| null, results?: any) => {
+        //                 if (err) {
+        //                     console.error('Error InsurancePayment data:', err);
+        //                 } else {
+        //                     console.log('Data InsurancePayment successfully:', results);
+        //                 }
+        //             });
+        //         }
+        //
+        //
+        //         closeDatabaseConnection();
+        //
+        //
+        //     }
+        //  });
 
         getTable();
-        handleClear();
+       handleClear();
         handleClose();
-        setStep(1);
+
     console.log('Inserted')
  };
-
-
     return<>
     <Modal
         show={show}
@@ -278,8 +505,8 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
         keyboard={false}
         centered
         size={'lg'}
-
     >
+
         <Form onSubmit={handleSubmit(onSubmit)}>
         <Modal.Header closeButton>
          <div className="d-flex align-items-center justify-content-end px-6  ">
@@ -290,10 +517,7 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
 
         </Modal.Header>
         <Modal.Body className={  'bg-white  z-2 '  }>
-
             {step === 0  ?<>
-
-
             <label
                 htmlFor="identity_file"
                 className="col-12 dropzone-msg dz-message needsclick d-flex align-items-center justify-content-center  "
@@ -321,7 +545,7 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
                               }}
                               className="position-absolute btn btn-xs btn-icon btn-circle btn-danger p-1 btn-hover-text-primary btn-shadow"
                               onClick={() => {
-                                  setBrandcompanyThumbnail(undefined);
+                                  setBrandcompanyThumbnail('');
 
                               }}
                           >
@@ -369,15 +593,15 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
                 className="col-12  px-5    align-items-center justify-content-center  "
             >
                 <Form.Group controlId="name">
-                    <Form.Label>Name</Form.Label>
+                    <Form.Label>Full Name</Form.Label>
                     <Form.Control type="text" {...register('name')}  />
                     <p className="text-danger">{errors.name?.message}</p>
                 </Form.Group>
 
-                <Form.Group controlId="email">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control type="email" {...register('email')} />
-                    <p className="text-danger">{errors.email?.message}</p>
+                <Form.Group controlId="cin">
+                    <Form.Label>cin</Form.Label>
+                    <Form.Control type="text" {...register('cin')} />
+                    <p className="text-danger">{errors.cin?.message}</p>
                 </Form.Group>
 
                 <Form.Group controlId="phone">
@@ -392,20 +616,26 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
                     <p className="text-danger">{errors.whatsappPhone?.message}</p>
                 </Form.Group>
 
-                <Row>
+                <Row className={'mb-3'}>
                     <Col>
-                        <div className=" ">
-                            <label htmlFor="birthdate" className="inline-block">
-                                Date Of Birth *
-                            </label>
+                        <div className="accordion" id="accordionExample">
+                            <div className="accordion-item">
+                                <h2 className="accordion-header" id="headingOne">
+                                    <button className="accordion-button" type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                        Date Of Birth *
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" className="accordion-collapse collapse show" aria-labelledby="headingOne"
+                                     data-bs-parent="#accordionExample">
+                                    <div className="accordion-body">
+                                        <div className=" flex  flex-col">
+                                            <Controller
+                                                control={control}
+                                                name={'DateOfBirth'}
+                                                render={({ field: { onChange, value, ref } }) => {
 
-                            <div className=" flex  flex-col">
-                                <Controller
-                                    control={control}
-                                    name={'DateOfBirth'}
-                                    render={({ field: { onChange, value, ref } }) => {
-
-                                        return (
+                                                    return (
 
 
 
@@ -431,59 +661,77 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
                                                         />
 
 
-                                        );
-                                    }}
-                                />
-                                <p className="text-danger">{errors.DateOfBirth?.message}</p>
+                                                    );
+                                                }}
+                                            />
+                                            <p className="text-danger">{errors.DateOfBirth?.message}</p>
 
-                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
                         </div>
+
+
                     </Col>
                     <Col>
-                        <div className="">
-                            <label htmlFor="MembershipStartDate" className="mb-[10px] inline-block">
-                                Member ship Start Date *
-                            </label>
+                        <div className="accordion" id="accordionaccordion ">
+                        <div className="accordion-item">
+                            <h2 className="accordion-header" id="headingTwo">
+                                <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    Member ship Start Date *
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" className="accordion-collapse collapse" aria-labelledby="headingTwo"
+                                 data-bs-parent="#accordionaccordion">
+                                <div className="accordion-body">
+                                    <div className=" flex  flex-col">
+                                        <Controller
+                                            control={control}
+                                            name={'MembershipStartDate'}
+                                            render={({ field: { onChange, value, ref } }) => {
 
-                            <div className=" flex  flex-col">
-                                <Controller
-                                    control={control}
-                                    name={'MembershipStartDate'}
-                                    render={({ field: { onChange, value, ref } }) => {
+                                                return (
 
-                                        return (
+                                                    <div className="  ">
 
-                                            <div className="  ">
+                                                        <Calendar
+                                                            ref={ref}
 
-                                                <Calendar
-                                                    ref={ref}
+                                                            locale={locales.fr}
+                                                            date={dateMembershipStartDate}
+                                                            onChange={(newDate: Date) => {
+                                                                setDateMembershipStartDate(newDate);
 
-                                                    locale={locales.fr}
-                                                    date={dateMembershipStartDate}
-                                                    onChange={(newDate: Date) => {
-                                                        setDateMembershipStartDate(newDate);
+                                                                onChange(
+                                                                    `${newDate.getFullYear()}-${`0${
+                                                                        newDate.getMonth() + 1
+                                                                    }`.slice(-2)}-${`0${newDate.getDate()}`.slice(
+                                                                        -2
+                                                                    )}`
+                                                                );
 
-                                                        onChange(
-                                                            `${newDate.getFullYear()}-${`0${
-                                                                newDate.getMonth() + 1
-                                                            }`.slice(-2)}-${`0${newDate.getDate()}`.slice(
-                                                                -2
-                                                            )}`
-                                                        );
+                                                            }}
+                                                            color={'primary'}
+                                                            maxDate={new Date()}
+                                                        />
+                                                    </div>
 
-                                                    }}
-                                                    color={'primary'}
-                                                    maxDate={new Date()}
-                                                />
-                                            </div>
+                                                );
+                                            }}
+                                        />
+                                        <p className="text-danger">{errors.DateOfBirth?.message}</p>
 
-                                        );
-                                    }}
-                                />
-                                <p className="text-danger">{errors.DateOfBirth?.message}</p>
-
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        </div>
+
+
                     </Col>
                 </Row>
                 <Row>
@@ -534,6 +782,45 @@ const {show , handleClose ,getTable  ,is,conn ,category,  rowId } = props
                 {/*    </Form.Group>*/}
                 {/*    <p className="text-danger">{errors.MembershipStartDate?.message}</p>*/}
         </Col>
+                </Row>
+                <Row>
+                    <Col>
+                        <Form.Group controlId="MemberPayment">
+                            <Form.Label>Member Payment</Form.Label>
+                            <Form.Control as="select" {...register('MemberPayment')}>
+                                <option value="">Select Gender</option>
+                                <option value="paid">paid</option>
+                                <option value="unpaid">unpaid</option>
+
+                            </Form.Control>
+                            <p className="text-danger">{errors.MemberPayment?.message}</p>
+                        </Form.Group>
+
+
+                    </Col>
+                    <Col>
+                        <Form.Group controlId="InsurancePayment">
+                            <Form.Label>Insurance Payment</Form.Label>
+                            <Form.Control as="select" {...register('InsurancePayment')} onChange={handleOptionChange}>
+                                <option value="">Select Gender</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Partial">Partial</option>
+                                <option value="Unpaid">Unpaid</option>
+
+                            </Form.Control>
+                            <p className="text-danger">{errors.InsurancePayment?.message}</p>
+                        </Form.Group>
+                        {selectedOption === 'Partial' && (
+                            <Form.Group controlId="InsuranceValue">
+                                <Form.Label>  Payment value</Form.Label>
+                                <Form.Control type="number" max={199} {...register('InsuranceValue')}  />
+                                <p className="text-danger">{errors.InsuranceValue?.message}</p>
+                            </Form.Group>
+
+                        )}
+
+
+                    </Col>
                 </Row>
             </div>
             </>  : null }

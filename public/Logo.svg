@@ -1,0 +1,8 @@
+logoPath<svg width="79" height="68" viewBox="0 0 79 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="mask0_27_93" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="79" height="68">
+<path d="M0.221313 0.698593H78.7786V67.2866H0.221313V0.698593Z" fill="white"/>
+</mask>
+<g mask="url(#mask0_27_93)">
+<path d="M70.9197 15.4226L78.7258 0.702469H33.7094L14.2332 22.1961L28.4649 0.702469H9.81661L3.1036 15.4226H12.2465L5.09127 30.6988H13.8355L0.320496 67.2818L22.8876 36.3806H51.298L58.851 24.8282H22.9784L27.1623 15.4226H70.9197Z" fill="white"/>
+</g>
+</svg>

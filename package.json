@@ -3,13 +3,12 @@
   "version": "2.2.0",
   "main": "dist-electron/main/index.js",
   "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
   "license": "MIT",
   "private": true,
-  "debug": {
-    "env": {
-      "VITE_DEV_SERVER_URL": "http://127.0.0.1:7777/"
-    }
+  "keywords": [],
+  "author": {
+    "name": "ASSAMDI YASSINE",
+    "email": "101175529+AssamdiYassine@users.noreply.github.com"
   },
   "scripts": {
     "dev": "vite",
@@ -26,8 +25,10 @@
     "@mui/x-date-pickers": "^6.11.1",
     "@react-pdf/renderer": "^3.1.12",
     "@tanstack/react-table": "^8.9.3",
+    "@types/react-bootstrap": "^0.32.32",
     "@types/react-notifications-component": "^3.1.1",
     "@types/react-pdf": "^7.0.0",
+    "@types/react-router-dom": "^5.3.3",
     "blob-util": "^2.0.2",
     "bootstrap": "^5.3.1",
     "bootstrap-daterangepicker": "^3.1.0",
@@ -41,6 +42,7 @@
     "match-sorter": "^6.3.1",
     "moment": "^2.29.4",
     "mysql": "^2.18.1",
+    "mysql2": "^3.6.0",
     "qrcode.react": "^3.1.0",
     "react-advanced-cropper": "^0.19.3",
     "react-bootstrap": "^2.8.0",
@@ -52,7 +54,7 @@
     "react-notifications": "^1.7.4",
     "react-paginate": "^8.2.0",
     "react-pdf": "^7.3.3",
-    "react-router-dom": "^5.2.0",
+    "react-router-dom": "^6.15.0",
     "react-table": "^7.8.0",
     "react-tiny-popover": "^7.2.4",
     "sort-by": "^1.2.0",
@@ -66,7 +68,6 @@
     "@types/react-date-range": "^1.4.4",
     "@types/react-datepicker": "^4.15.0",
     "@types/react-dom": "^18.0.11",
-    "@types/react-router-dom": "^5.3.3",
     "@types/react-table": "^7.7.14",
     "@vitejs/plugin-react": "^3.1.0",
     "electron": "^23.2.0",

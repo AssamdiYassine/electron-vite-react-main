@@ -1,27 +1,30 @@
 import React, { useState } from "react";
-  import { useHistory } from "react-router-dom";
-import {Brand} from "@/components/brand/Brand";
-import  BlackLogo from '../assets/BlackLogo.svg'
+import { useNavigate } from "react-router-dom";
+import {Brand} from "../components/brand/Brand";
+ // const { ipcRenderer } = window.require('electron');
+import  Logo from './BlackLogo.svg'
 interface LoginProps {
-  conn?: any; // Update this type to match the MySQL connection type
+
 }
-
+interface Login  {
+  email: string;
+  password_hash: string;
+}
+import { connectToDatabase, closeDatabaseConnection } from '../../../../Documents/electron-vite-react-main/src/database';
 const Login: React.FC<LoginProps> = (props) => {
-  const History = useHistory();
-  const { conn } = props;
-
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [btnDisabled, setBtnDisabled] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [email, setEmail] = useState("malaki@admin.com");
   const [password1, setPassword] = useState("pluS@2023");
   const [mdp_progress, setPasswordProgress] = useState(0);
-  const [User, setUser] = useState<string | null>(null);
+  let [User, setUser] = useState<any>([]);
   let hash :string;
   if (password1 === 'pluS@2023'){
     hash = "$2b$10$PXrtUIwalYpUkFbsToPbwu6Ss8XgzY4bV.Tya6LZS0QQ8ieTOth7."
   }
-
+  console.log(User)
 
   const loginHandle = async () => {
     try {
@@ -49,32 +52,38 @@ const Login: React.FC<LoginProps> = (props) => {
       }
       setLoading(true);
       setBtnDisabled(true);
-      await conn.query(
-        {
-          sql: 'SELECT email,password_hash FROM USERS;',
-          timeout: 40 * 1000, // 40s
-        },
-        [0], // values to replace ?
-        function (err: any, results: any, fields: any) {
-          if (err) {
-            alert(err.code);
-            console.log(err.code);
-          } else {
-            results.map((el: any) => {
-              setUser(el.email);
-              if (email === el.email) {
-                  if (hash === el.password_hash ){
+      try {
+        const connection = await connectToDatabase();
+
+        const [results] = await connection.query('SELECT email, password_hash FROM USERS;');
+
+        if (Array.isArray(results) && results.length > 0) {
+          // Assuming results is an array of RowDataPacket objects
+           // @ts-ignore
+          results.map((result ) => {
+                // @ts-ignore
+            if (email === result.email) {
+              // @ts-ignore
+                  if (hash === result.password_hash) {
                     console.log('password is correct.');
-                    History.push("/dashboard");
+                    navigate("/root/dashboard");
                     setLoading(false);
                     setBtnDisabled(false);
-                  }else{
+                  } else {
                     console.log('password1 is incorrect.');
                   }
+                }
               }
-            });
-          }
-        });
+          );
+          await closeDatabaseConnection();
+        } else {
+          console.error('No results found or unexpected query result format');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+
+
     } catch (error) {
       console.log(error);
       setLoading(false);
@@ -102,7 +111,7 @@ const Login: React.FC<LoginProps> = (props) => {
       <div className={"container-fluid  row  justify-content-around d-flex"}>
         <div className={ "col-sm-4  col-md-5 col-lg-6  "}>
           <div className={'d-flex ms-5 ps-5'}>
-          <Brand logoPath={BlackLogo} link={''}/>
+          <Brand logoPath={Logo} link={''}/>
           </div>
           <div  className={ "  d-flex align-items-center justify-content-center  "}>
           <div className={ "m-auto mt-5 ms-5"}>
@@ -219,6 +228,13 @@ const Login: React.FC<LoginProps> = (props) => {
                   className="btn btn-outline-dark font-weight-bolder px-8 py-2 my-3 mr-4 w-100"
               >
                 <span>Connexion</span>
+                {loading && <span className="ml-3 spinner-border spinner-border-sm"></span>}
+              </button>
+            </div>
+
+            <div className="form-group d-flex flex-wrap pb-lg-0 pb-3 justify-content-between">
+              <button  className="btn btn-outline-danger font-weight-bolder px-8 py-2 my-3 mr-4 w-100" >
+                <span>Quit App</span>
                 {loading && <span className="ml-3 spinner-border spinner-border-sm"></span>}
               </button>
             </div>

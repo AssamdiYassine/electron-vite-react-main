@@ -2,13 +2,11 @@
 import React from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { NavLink } from 'react-router-dom';
-import {Brand} from "@/components/brand/Brand";
+import {Brand} from "./brand/Brand";
 import SVG from 'react-inlinesvg';
-import Logout from '../assets/logout.svg'
-import Logo from '../assets/Logo.svg'
-import profile from '../assets/profile.svg'
-import Dolar from '../assets/dollar.svg'
-
+import  Logout from './logout.svg'
+import  LOGO from './Logo.svg'
+ import  profile  from './profile.svg'
 interface MyNavLinkProps {
     link: string;
     svg: any;
@@ -18,10 +16,7 @@ interface MyNavLinkProps {
 interface AsideProps {
 
 }
-
 export const Aside: React.FC<AsideProps> = () => {
-    let width = window.innerWidth;
-
     return (
         <>
             {/* begin::Aside */}
@@ -31,11 +26,9 @@ export const Aside: React.FC<AsideProps> = () => {
                      style={{borderRadius:15 }}
                 >
                     <div>
-
                     <div className={"pt-5"}>
-                   <Brand logoPath={Logo} link={'/dashboard'}/>
+                   <Brand logoPath={LOGO} link={'/root/dashboard'}/>
                     </div>
-
                     {/* begin::Nav Wrapper */}
                     {/* Remove " flex-column-fluid "::To solve aside footer bottom padding */}
                     <div className="  d-flex flex-column align-items-center py-5 px-4 scrollA scrollA-pull">
@@ -46,36 +39,24 @@ export const Aside: React.FC<AsideProps> = () => {
                                 <MyNavLink
                                     svg={profile}
                                     txt={'Members'}
-                                    link="/members"
+                                    link="/root/members"
                                 />
                                 <div className="aside-separator" />
-                                <div className={'pt-5'}>
-
-                                    <MyNavLink
-                                        svg={Dolar}
-                                        txt={'Paiment'}
-                                        link="/paiment"
-                                    />
-                                </div>
-
                             </ul>
                         </div>
                         {/* end::Nav */}
-
                     </div>
 
                     </div>
                     <div className="  d-flex flex-column align-items-center flex-column-auto pt-4 py-lg-10  mb-5">
                         <ul className="list-unstyled">
-
-                            <MyNavLink
+                           <MyNavLink
                                 svg={Logout}
                                 txt={"Logout"}
                                 link="/"
                             />
                         </ul>
                     </div>
-
                     {/* ... Other content ... */}
                     {/* end::Nav Wrapper */}
                 </div>

@@ -68,6 +68,10 @@ const indexHtml = node_path.join(process.env.DIST, "index.html");
 async function createWindow() {
   win = new electron.BrowserWindow({
     title: "Main window",
+    width: 1700,
+    height: 1100,
+    minWidth: 1600,
+    minHeight: 1e3,
     fullscreen: true,
     icon: node_path.join(process.env.VITE_PUBLIC, "favicon.ico"),
     webPreferences: {
@@ -129,5 +133,8 @@ electron.ipcMain.handle("open-win", (_, arg) => {
   } else {
     childWindow.loadFile(indexHtml, { hash: arg });
   }
+});
+electron.ipcMain.on("quit-app", () => {
+  electron.app.quit();
 });
 //# sourceMappingURL=index.js.map

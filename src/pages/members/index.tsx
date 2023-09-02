@@ -1,34 +1,34 @@
-import Clock from "@/components/clock";
+import Clock from "../../components/clock";
 import SearchIcon from "@material-ui/icons/Search";
 import Button from "react-bootstrap/Button";
 import AutorenewIcon from "@material-ui/icons/Autorenew";
 import AddIcon from "@material-ui/icons/Add";
 import Table from "react-bootstrap/Table";
 import ReactPaginate from "react-paginate";
-import Select from "@/components/select";
+import Select from "../../components/select";
 import React, {useEffect, useMemo, useRef, useState} from "react";
 import {useTable} from "react-table";
 import Modal from 'react-bootstrap/Modal'
  import {Dropdown} from "react-bootstrap";
 import  AddMember from './addMember'
-import TableRow from "@/pages/dashboard/tableRow";
-import Headers from "@/components/headers";
+ import Headers from "../../components/headers";
 import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import RemoveRedEyeIcon from '@material-ui/icons/RemoveRedEye';
-import DeleteModal from "@/components/deleteModal";
+import DeleteModal from "../../components/deleteModal";
 import {string} from "yup";
 import blobUtil from 'blob-util';
-import Profile from "@/pages/members/profile";
+import Profile from "./profile";
+import { connectToDatabase, closeDatabaseConnection } from '../../../../../Documents/electron-vite-react-main/src/database';
 
 
 interface LoginProps {
-    conn?: any; // Update this type to match the MySQL connection type
+
 }
 
 interface Member {
     name: string;
-    email: string;
+    cin: string;
     phone: string;
     whatsappPhone: string;
     DateOfBirth: Date;
@@ -45,7 +45,7 @@ interface Item {
 }
 
 const Index:React.FC<LoginProps> = (props)=> {
-    const {conn} = props;
+
      const [showProfile, setShowProfile] = useState(false);
     const [showAddMember, setShowAddMember] = useState(false);
     const [showDelete, setShowDelet] = useState(false);
@@ -69,7 +69,7 @@ const Index:React.FC<LoginProps> = (props)=> {
     }
 
     const [searchQuery, setSearchQuery] = useState<string>('');
-
+    console.log("------",data)
     // Filter the data based on the search query
     const filteredData = useMemo(() => {
         return data.filter(item => {
@@ -90,57 +90,57 @@ const handelProfile = (id:number) => {
     // @ts-ignore
 
     const getTable = async ()=>{
-        await  conn.query(
-            {
-                sql: 'SELECT m.* ,c.name as CategoryName FROM Members m ,Category c WHERE  c.Category_id = m.Category_id AND m.isDeleted=0 ',
-                timeout: 40 * 1000, // 40s
-            },
-            [0], // values to replace ?
-            await     function (err: any, results: any, fields: any) {
-                if (err) {
-                    alert(err.code);
-                    console.log(err.code);
-                } else {
+        try {
+            const connection = await connectToDatabase();
 
-                 setData(results);
-                }
-            });
+            const [results] = await connection.query(`SELECT m.* ,c.name as CategoryName FROM Members m ,Category c WHERE  c.Category_id = m.Category_id AND m.isDeleted=0`);
+
+
+            // @ts-ignore
+            setData(results);
+
+            await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+
     }
 
     const getCategory = async ()=>{
-        await  conn.query(
-            {
-                sql: 'SELECT *  FROM  Category ',
-                timeout: 40 * 1000, // 40s
-            },
-            [0], // values to replace ?
-            await     function (err: any, results: any, fields: any) {
-                if (err) {
-                    alert(err.code);
-                    console.log(err.code);
-                } else {
+        try {
+            const connection = await connectToDatabase();
 
-                    setCategory(results);
-                }
-            });
+            const [results] = await connection.query(`SELECT *  FROM  Category`);
+
+
+            // @ts-ignore
+            setCategory(results);
+
+            await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+
     }
 
  const getWithCategory  = async (el :any)=>{
-     await  conn.query(
-         {
-             sql: `SELECT m.name , m.email,m.phone , m.whatsappPhone , m.DateOfBirth ,m.gender ,c.name as CategoryName FROM Members m ,Category c WHERE  c.Category_id = m.Category_id AND c.Category_id=${el} AND m.isDeleted=0`,
-             timeout: 40 * 1000, // 40s
-         },
-         [0], // values to replace ?
-         await     function (err: any, results: any, fields: any) {
-             if (err) {
-                 alert(err.code);
-                 console.log(err.code);
-             } else {
+     try {
+         const connection = await connectToDatabase();
 
-                 setData(results);
-             }
-         });
+         const [results] = await connection.query(`SELECT m.name , m.cin,m.phone , m.whatsappPhone , m.DateOfBirth ,m.gender ,c.name as CategoryName FROM Members m ,Category c WHERE  c.Category_id = m.Category_id AND c.Category_id=${el} AND m.isDeleted=0`);
+
+
+         // @ts-ignore
+         setData(results);
+
+         await closeDatabaseConnection();
+
+     } catch (error) {
+         console.error(error);
+     }
+
     }
     const formatDate = (date: Date): string => {
         return date.toLocaleDateString(); // Adjust formatting as needed
@@ -187,8 +187,8 @@ const handelDelete=(id :any)=>{
 
             },
             {
-                Header: "Email",
-                accessor: "email",
+                Header: "CIN",
+                accessor: "cin",
             },
             {
                 Header: "Phone",
@@ -296,7 +296,7 @@ const handelDelete=(id :any)=>{
 
                                     <SearchIcon/>
                                 </div>
-                                <input type="text" className="  form-control form-input  py-2 " placeholder="Search anything..."
+                                <input type="text" className="  form-control form-input  py-2 " placeholder="Search by name or QR code  "
                                        style={{paddingLeft :35,    borderRadius: '30px  '
                                 }}
                                        value={searchQuery}
@@ -305,7 +305,7 @@ const handelDelete=(id :any)=>{
                             </div>
                             <div>
                                 <Button variant="white" className={'mx-5'} onClick={getTable}><AutorenewIcon/> Refresh</Button>
-                                <Button variant="dark" className={'me-5'} onClick={handleShowAddMember}><AddIcon/> Ajouter Member</Button>
+                                <Button variant="dark" className={'me-5'} onClick={handleShowAddMember}><AddIcon/> Add Member</Button>
                             </div>
                         </div>
                         <div  style={{ height: '700px', overflow: 'auto' }}>
@@ -370,9 +370,9 @@ const handelDelete=(id :any)=>{
 
             </div>
 
-            <AddMember show={showAddMember} handleClose={handleCloseAddMember}   conn={conn}  category={category} getTable={getTable} />
-            <Profile show={showProfile} handleClose={handleCloseProfile}  conn={conn}  rowId={rowId}/>
-            <DeleteModal show={showDelete} onHide={handleDeleteClose} conn={conn} id={DeleteId} handeldata={getTable} />
+            <AddMember show={showAddMember} handleClose={handleCloseAddMember}   category={category} getTable={getTable} />
+            <Profile show={showProfile} handleClose={handleCloseProfile}   rowId={rowId}/>
+            <DeleteModal show={showDelete} onHide={handleDeleteClose}  id={DeleteId} handeldata={getTable} />
         </div>
 
     </>

@@ -1,21 +1,15 @@
-import { useHistory } from "react-router-dom";
-import React, {useEffect, useMemo, useState} from "react";
+ import React, {useEffect, useMemo, useState} from "react";
 import { useTable } from "react-table";
 import Table from 'react-bootstrap/Table'
  import  ReactPaginate from 'react-paginate'
 import  Button from'react-bootstrap/Button'
-import AddIcon from '@material-ui/icons/Add';
-import AutorenewIcon from '@material-ui/icons/Autorenew';
+ import AutorenewIcon from '@material-ui/icons/Autorenew';
 import SearchIcon from '@material-ui/icons/Search';
-import DateRangeCalendar from "@/components/daterangepicker/DateRangeCalendar";
+import DateRangeCalendar from "../../components/daterangepicker/DateRangeCalendar";
  import  Select from '../../components/select'
-import Clock from '../../components/clock'
-import Mask from '../../assets/Mask1.svg'
-import {Brand} from "@/components/brand/Brand";
-import BlackLogo from "@/assets/BlackLogo.svg";
-import SVG from "react-inlinesvg";
-import PaidModal from "../../components/paidModal"
-import Headers from "@/components/headers";
+
+import PaidModal from "./paidModal"
+import Headers from "../../components/headers";
 import { connectToDatabase, closeDatabaseConnection } from '../../database'; // Import the TypeScript module
 
 
@@ -29,15 +23,11 @@ interface Member {
     MembershipStartDate: Date;
     ProfilePicture: Blob;
 }
-interface LoginProps {
-    conn?: any; // Update this type to match the MySQL connection type
-}
 
-const Index: React.FC<LoginProps> = (props) => {
+const Index: React.FC = () => {
 
-    const {conn } =props
-    const History = useHistory();
-     const [data, setData] = useState([]);
+
+      const [data, setData] = useState([]);
      const [totalmember, setTotalMember] = useState(null);
      const [totalPersonPaid, setTotalPersonPaid] = useState(null);
      const [totalPrice, setTotalPrice] = useState(null);
@@ -48,89 +38,130 @@ const Index: React.FC<LoginProps> = (props) => {
     const [idMember, setIdMember] = useState<number>(0);
     console.log(totalPersonPaid,totalPrice)
     const handlePaidClose = () => setShowPaid(false);
-useEffect(()=>{
+    const getMaxMemberID = async ()=> {
+        try {
+            const connection = await connectToDatabase();
 
-    getTable()
+            const [results] = await connection.query('SELECT ifnull(  COUNT(MemberID) , 0 )  AS MaxMemberID FROM Members');
 
-
-},[selectDate])
-
-    useEffect(() => {
-        // Open the connection
-        const connection = connectToDatabase();
-
-        // Execute the SQL query to get the maximum MemberID
-        connection.query('SELECT Max(MemberID) AS MaxMemberID FROM Members', (err, results) => {
-            if (err) {
-                console.error(err);
+            if (Array.isArray(results) && results.length > 0) {
+                // Assuming results is an array of RowDataPacket objects
+                // @ts-ignore
+                results.map((result ) => {
+                        // @ts-ignore
+                    setTotalMember(result.MaxMemberID)
+                    }
+                );
+                await closeDatabaseConnection();
             } else {
-                // Extract the maximum MemberID from the query result
-                const maxID = results[0].MaxMemberID;
-                setTotalMember(maxID);
+                console.error('No results found or unexpected query result format');
             }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+    const getTotalPrice = async ()=>{
+        try {
+            const connection = await connectToDatabase();
 
-            // Close the connection when done (for example, in a cleanup function)
+            const [results] = await connection.query(`SELECT ifnull( SUM(Price) , 0 ) as totalPrice  FROM Paiment WHERE MONTH(PaymentDate) =  MONTH( '${selectDate}') and YEAR(PaymentDate) = YEAR('${selectDate}') `);
 
-        });
-        connection.query('SELECT ifnull( SUM(Price) , 0 ) as totalPrice  FROM Paiment WHERE MONTH(PaymentDate) =  MONTH(CURRENT_DATE());', (err, results) => {
-            if (err) {
-                console.error(err);
+            if (Array.isArray(results) && results.length > 0) {
+                // Assuming results is an array of RowDataPacket objects
+                // @ts-ignore
+                results.map((result ) => {
+                        // @ts-ignore
+                    setTotalPrice(result.totalPrice)
+                    }
+                );
+                await closeDatabaseConnection();
             } else {
-                // Extract the maximum MemberID from the query result
-                const totalP  = results[0].totalPrice;
-                setTotalPrice(totalP );
+                console.error('No results found or unexpected query result format');
             }
+        } catch (error) {
+            console.error(error);
+        }
 
-            // Close the connection when done (for example, in a cleanup function)
 
-        });
-        connection.query('SELECT ifnull( COUNT( MemberID ) , 0 ) as totalPersonPaid  FROM Paiment WHERE MONTH(PaymentDate) =  MONTH(CURRENT_DATE());', (err, results) => {
-            if (err) {
-                console.error(err);
-            } else {
-                // Extract the maximum MemberID from the query result
-                const PersonP  = results[0].totalPersonPaid;
-                setTotalPersonPaid(PersonP );
-            }
-
-            // Close the connection when done (for example, in a cleanup function)
-
-        });
-        connection.query('SELECT ifnull( COUNT( payment_status ) , 0 ) as PersNotPaid   FROM subscriptions where payment_status = "unpaid";', (err, results) => {
-            if (err) {
-                console.error(err);
-            } else {
-                // Extract the maximum MemberID from the query result
-                const PersNotP  = results[0].PersNotPaid;
-                setPersNotPaid(PersNotP);
-            }
-
-            // Close the connection when done (for example, in a cleanup function)
-
-        });
-        closeDatabaseConnection();
-    }, []);
-
-    const getTable = async ()=>{
-        const connection = connectToDatabase();
-         connection.query(
-            {
-                sql: `SELECT m.* ,c.name as CategoryName ,s.* FROM subscriptions s, Members m ,Category c WHERE s.MemberID = m.MemberId AND c.Category_id = m.Category_id AND  payment_status = "unpaid" AND MONTH(end_date) <= MONTH('${selectDate}') AND YEAR(end_date) <= YEAR('${selectDate}')AND day(end_date) <= day('${selectDate}')`,
-                timeout: 40 * 1000, // 40s
-            },
-            [0], // values to replace ?
-             function (err: any, results: any, fields: any) {
-                if (err) {
-                    alert(err.code);
-                    console.log(err.code);
-                } else {
-
-                        setData(results);
-                }
-            });
-        closeDatabaseConnection();
 
     }
+    const getTotalPersonPaid = async ()=>{
+        try {
+            const connection = await connectToDatabase();
+
+            const [results] = await connection.query(`SELECT ifnull( COUNT( MemberID ) , 0 ) as totalPersonPaid  FROM Paiment WHERE MONTH(PaymentDate) =  MONTH('${selectDate}') and YEAR(PaymentDate) = YEAR('${selectDate}');`);
+
+            if (Array.isArray(results) && results.length > 0) {
+                // Assuming results is an array of RowDataPacket objects
+                // @ts-ignore
+                results.map((result ) => {
+                        // @ts-ignore
+                    setTotalPersonPaid(result.totalPersonPaid)
+                    }
+                );
+                await closeDatabaseConnection();
+            } else {
+                console.error('No results found or unexpected query result format');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+
+}
+    const getPersNotPaid = async ()=>{
+        try {
+            const connection = await connectToDatabase();
+
+            const [results] = await connection.query(`SELECT ifnull( COUNT( MemberID ) , 0 ) as PersNotPaid   FROM subscriptions where payment_status = "unpaid"  and MONTH(end_date) = month('${selectDate}' ) and YEAR(end_date) = YEAR('${selectDate}'  ) ;`);
+
+            if (Array.isArray(results) && results.length > 0) {
+                // Assuming results is an array of RowDataPacket objects
+                // @ts-ignore
+                results.map((result ) => {
+                        // @ts-ignore
+                    setPersNotPaid(result.PersNotPaid)
+                    }
+                );
+                await closeDatabaseConnection();
+            } else {
+                console.error('No results found or unexpected query result format');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+
+
+
+    }
+    const getTable = async ()=>{
+        try {
+            const connection = await connectToDatabase();
+
+            const [results] = await connection.query(`SELECT m.MemberID, m.name , m.phone ,m.whatsappPhone ,m.gender,c.name as CategoryName ,s.subscription_id ,s.start_date , s.end_date ,s.payment_status FROM subscriptions s, Members m ,Category c WHERE s.MemberID = m.MemberID AND c.Category_id = m.Category_id AND  payment_status = "unpaid" AND MONTH(end_date) <= MONTH('${selectDate}') AND YEAR(end_date) <= YEAR('${selectDate}')AND day(end_date) <= day('${selectDate}') order by m.MemberID ;`);
+
+
+                // @ts-ignore
+            setData(results);
+
+                await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+
+
+    }
+    useEffect(()=>{
+        getTable()
+    },[selectDate])
+
+    useEffect(() => {
+        getMaxMemberID();
+        getTotalPrice();
+        getTotalPersonPaid();
+        getPersNotPaid();
+    }, [selectDate,showPaid]);
+
 
     const formatDate = (date: Date): string => {
         return date.toLocaleDateString(); // Adjust formatting as needed
@@ -159,10 +190,7 @@ useEffect(()=>{
                 Header: "Name",
                 accessor: "name",
             },
-            {
-                Header: "Email",
-                accessor: "email",
-            },
+
             {
                 Header: "Phone",
                 accessor: "phone",
@@ -171,15 +199,15 @@ useEffect(()=>{
                 Header: "WhatsApp Phone",
                 accessor: "whatsappPhone",
             },
+
             {
-                Header: "Date of Birth",
-                accessor: "DateOfBirth",
+                Header: " Start Date",
+                accessor: "start_date",
                 Cell: ({ value }: { value: string }) => formatDate(new Date(value)) ,
 
-            },
-            {
-                Header: "Membership Start Date",
-                accessor: "MembershipStartDate",
+            } ,{
+                Header: " End Date",
+                accessor: "end_date",
                 Cell: ({ value }: { value: string }) => formatDate(new Date(value)) ,
 
             }, {
@@ -249,14 +277,14 @@ useEffect(()=>{
 
     return (
         <>
-            <Headers title={ 'Bienvenue sur '} subtitle={'FormePro' } />
+            <Headers title={ 'Welcome To '} subtitle={'FormePro' } />
             <div  className={'row '}>
             <div className={ 'd-flex justify-content-center align-items-center col-md-8'}>
                 <div className={'col  '}>
                 <div className="card card-body bg-dark align-items-center justify-content-center border-0  mb-4 shadow-sm   "
                      style={{borderRadius:'15px' , width:'70%', margin: "auto" , height: '200px' }}>
                         <div className={'fw-lighter gradient-text-dark '} style={{fontSize:35}}>
-                            Total des membres
+                            All Membres
                         </div>
                         <div  className={'d-flex justify-content-center  fw-bold  text-white' } style={{fontSize:35}}>
                             {totalmember}
@@ -305,7 +333,7 @@ useEffect(()=>{
                                 <div className={ '  position-absolute  top-3 left-0 px-2'}>
                                <SearchIcon/>
                                </div>
-                                <input type="text" className="  form-control form-input  py-2 " placeholder="Search anything..." style={{paddingLeft :35,    borderRadius: '30px  '
+                                <input type="text" className="  form-control form-input  py-2 " placeholder="Search by name   " style={{paddingLeft :35,    borderRadius: '30px  '
                                 }}
                                        value={searchQuery}
                                        onChange={(e) => setSearchQuery(e.target.value)}
@@ -316,6 +344,7 @@ useEffect(()=>{
                                 {/*<Button variant="dark" className={'me-5'}><AddIcon/> Ajouter Member</Button>*/}
                             </div>
                     </div>
+
 <div   style={{ height: '300px', overflow: 'auto' }} >
 
 
@@ -380,7 +409,7 @@ useEffect(()=>{
 
         </div>
 
-    <PaidModal show={showPaid} onHide={handlePaidClose} id={rowId} handeldata={getTable} conn={conn} idMember={idMember}/>
+    <PaidModal show={showPaid} onHide={handlePaidClose} id={rowId} handeldata={getTable} idMember={idMember}/>
 </div>
         </>
     );

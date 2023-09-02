@@ -1,9 +1,9 @@
 import React, { useState as UseState } from "react";
 import { Modal } from "react-bootstrap";
-import { connectToDatabase, closeDatabaseConnection } from '../../../../../Documents/electron-vite-react-main/src/database';
+import { connectToDatabase, closeDatabaseConnection } from '../../../database';
 
 import SVG from "react-inlinesvg";
- import  Virifie from '../../assets/verifier.png'
+ import  Virifie from '../../../assets/verifier.png'
 interface DeleteDemoModalProps {
     show: boolean;
     onHide: () => void;
@@ -15,17 +15,14 @@ interface DeleteDemoModalProps {
 const index: React.FC<DeleteDemoModalProps> =  (props) => {
     const currentDate = new Date();
     const { show,handeldata , onHide, id,  idMember } = props;
-    console.log("idMember",idMember)
-    console.log("id",id)
-    async function updateSubscriptionPaymentStatus(id:number) {
 
+    async function updateSubscriptionPaymentStatus(id:number) {
         try {
             const connection = await connectToDatabase();
 
-            await connection.query('UPDATE subscriptions SET payment_status = ? WHERE subscription_id = ?' , ['paid', id] );
+            await connection.query(`UPDATE subscriptions SET payment_status = 'paid' WHERE subscription_id = ${id}`);
 
-
-            await closeDatabaseConnection();
+            handeldata();
 
         } catch (error) {
             console.error(error);
@@ -48,20 +45,18 @@ const index: React.FC<DeleteDemoModalProps> =  (props) => {
                 PaymentDate,
                 100
             ];
+            const insertQuery = `
+      INSERT INTO Paiment (MemberID,PaymentDate,Price)
+      VALUES (?, ?, ?);
+    `;
+             await connection.query(insertQuery,values );
 
-           const insertQuery = `
-                      INSERT INTO Paiment (MemberID,PaymentDate,Price)
-                      VALUES (?, ?, ?);
-                    `;
-
-            await connection.query(insertQuery,values);
-            await closeDatabaseConnection();
+             handeldata();
+               await closeDatabaseConnection();
 
         } catch (error) {
             console.error(error);
         }
-
-
 
     }
     const handlePaid = async () => {
@@ -74,7 +69,7 @@ const index: React.FC<DeleteDemoModalProps> =  (props) => {
             .catch((error) => {
                 console.error('Error updating subscription payment status:', error);
             });
-        handeldata();
+
       await  InsertPayment(idMember);
         onHide();
         handeldata();

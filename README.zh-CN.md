@@ -78,7 +78,7 @@ export default {
 
 ## 🔧 额外的功能
 
-1. Electron 自动更新 👉 [阅读文档](src/components/update/README.zh-CN.md)
+1. Electron 自动更新 👉 [阅读文档](../../Desktop/formpro/src/components/update/README.zh-CN.md)
 2. Playwright 测试
 
 ## ❔ FAQ

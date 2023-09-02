@@ -1,40 +1,37 @@
-import * as mysql from 'mysql';
+import mysql from 'mysql2/promise';
 
-const dataConnection: mysql.ConnectionConfig = {
-
-    host: process.env.REACT_APP_HOST,
-    user: process.env.REACT_APP_USER,
-    password: process.env.REACT_APP_PASSWORD,
-    database: process.env.REACT_APP_DATA_BASENAME,
+const dataConnection: mysql.ConnectionOptions = {
+    host: "127.0.0.1",
+    user: "yassine",
+    password: "pluS@2023",
+    database: "MALAKIDB",
 };
 
 let connectionInstance: mysql.Connection | null = null;
 
 // Function to establish a MySQL connection
-export function connectToDatabase(): mysql.Connection {
+export async function connectToDatabase(): Promise<mysql.Connection> {
     if (!connectionInstance) {
-        connectionInstance = mysql.createConnection(dataConnection);
-        connectionInstance.connect((err) => {
-            if (err) {
-                console.error(err.code, err.fatal, err.stack);
-            } else {
-                console.log("Connection successfully established");
-            }
-        });
+        connectionInstance = await mysql.createConnection(dataConnection);
+
+        try {
+            await connectionInstance.connect();
+            console.log("Connection successfully established");
+        } catch (err) {
+            console.error(err);
+        }
     }
     return connectionInstance;
 }
-
 // Function to close the MySQL connection
-export function closeDatabaseConnection() {
+export async function closeDatabaseConnection() {
     if (connectionInstance) {
-        connectionInstance.end((err) => {
-            if (err) {
-                console.error(err.code, err.fatal, err.stack);
-            } else {
-                console.log("Connection successfully closed");
-            }
-        });
+        try {
+            await connectionInstance.end();
+            console.log("Connection successfully closed");
+        } catch (err) {
+            console.error(err);
+        }
         connectionInstance = null;
     }
 }

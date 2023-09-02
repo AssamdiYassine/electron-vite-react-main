@@ -1,11 +1,10 @@
 
 
 import React, { Component, ReactNode } from 'react';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
-import $ from 'jquery';
+ import $ from 'jquery';
 import { Aside } from '../components/Aside';
-import  Logo from '../assets/BlackLogo.svg'
 
+import { Outlet } from "react-router-dom"
 
 interface RootState {
 	userreducer: {
@@ -19,8 +18,8 @@ interface User {
 	// Define your user properties here
 }
 
-interface LayoutProps extends RouteComponentProps {
-	children: ReactNode;
+interface LayoutProps  {
+	children?: ReactNode;
 
 }
 
@@ -46,12 +45,12 @@ class Layout extends Component<LayoutProps, LayoutState> {
 		});
 	}
 
-	componentDidUpdate(prevProps: LayoutProps) {
-		if (this.props.location !== prevProps.location) {
-			$('#kt_profile_aside').removeClass('offcanvas-mobile-on');
-			$('div.offcanvas-mobile-overlay').remove();
-		}
-	}
+	// componentDidUpdate(prevProps: LayoutProps) {
+	// 	if (this.props.location !== prevProps.location) {
+	// 		$('#kt_profile_aside').removeClass('offcanvas-mobile-on');
+	// 		$('div.offcanvas-mobile-overlay').remove();
+	// 	}
+	// }
 
 	render() {
 		const { loading } = this.state;
@@ -59,7 +58,7 @@ class Layout extends Component<LayoutProps, LayoutState> {
 		if (loading) {
 			return (
 				<div id='splash-screen' className='kt-splash-screen'>
-					<img src={Logo} alt='Chronos' />
+					<img src={'/BlackLogo.svg'} alt='Chronos' />
 					<svg className='splash-spinner' viewBox='0 0 50 50'>
 						<circle className='path' cx='25' cy='25' r='20' fill='none' strokeWidth='5'></circle>
 					</svg>
@@ -73,7 +72,7 @@ class Layout extends Component<LayoutProps, LayoutState> {
 			<>
 				{/*begin::Main*/}
 
-				<div className='d-flex flex-column flex-root'>
+				<div className='d-flex flex-column flex-root  w-100'>
 					{/*begin::Page*/}
 					<div className='d-flex flex-row flex-column-fluid page'>
 						<div className={'col-2'}>
@@ -87,7 +86,7 @@ class Layout extends Component<LayoutProps, LayoutState> {
 								{/* {headerTitle && <SubHeader headerTitle={headerTitle} />} */}
 
 								<div className={''}>
-								{children}
+									<Outlet />
 								</div>
 								{/*end::Entry*/}
 							</div>
@@ -104,4 +103,4 @@ class Layout extends Component<LayoutProps, LayoutState> {
 }
 
 
-export default withRouter(Layout);
+export default Layout;

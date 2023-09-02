@@ -1,5 +1,5 @@
  import Modal from 'react-bootstrap/Modal';
-
+import PaidModal from "../../components/paidModal";
  import React, {useEffect, useState} from 'react';
  import Form from 'react-bootstrap/Form';
 import {useTable} from "react-table";
@@ -10,16 +10,24 @@ import 'react-datepicker/dist/react-datepicker.css';
  import en from 'date-fns/locale/en-US';
  import {Paper, Typography} from "@material-ui/core";
 import { makeStyles } from '@material-ui/core/styles';
+import Delete from '../../components/deleteModal'
+ import Button from "react-bootstrap/Button";
 const useStyles = makeStyles(theme => ({
     root: {
         padding: theme.spacing(3, 2),
     },
 }));
-
+ import { connectToDatabase, closeDatabaseConnection } from '../../../../../Documents/electron-vite-react-main/src/database';
+ import {string} from "yup";
+ import RemoveRedEyeIcon from "@material-ui/icons/RemoveRedEye";
+ import EditIcon from "@material-ui/icons/Edit";
+ import DeleteIcon from "@material-ui/icons/Delete";
+ import SVG from "react-inlinesvg";
+ import worninf from "../../../public/verifier.png";
 registerLocale('en', en);
 interface Member {
     name: string;
-    email: string;
+    cin: string;
     phone: string;
     whatsappPhone: string;
     DateOfBirth: Date;
@@ -42,17 +50,36 @@ interface Props {
     rowId?:number;
     show?: any;
     handleClose?: () => void;
-    conn?: any; // Update this type to match the MySQL connection type
-}
+ }
 
 const profile:React.FC<Props> = (props)=> {
-    const {conn ,show  ,handleClose ,   rowId } = props
+    const {show  ,handleClose ,   rowId } = props
     const [informtion, setInformtion] = useState<Member | any>([]);
     const [data, setData] = useState<sub | any>([]);
+    const [InsurancePayment, setInsurancePayment] = useState<sub | any>([]);
+    console.log("----InsurancePayment---",InsurancePayment)
+    const [showP, setShowP] = useState(false);
+    const [showD, setShowD] = useState(false);
+    const [showPartial, setShowPartial] = useState(false);
+    const [IdS, setIdS] = useState<number>(0);
+    const [DeleteID, setDeleteID] = useState<number>(0);
+
+    const [error, setError] = useState('');
+    const [selectedOption, setSelectedOption] = useState('');
+    const [paymentValue, setPaymentValue] = useState(0);
+    const [showPaid, setShowPaid] = useState(false);
+    console.log(selectedOption)
+    const handleOptionChange = (event : any) => {
+        setSelectedOption(event.target.value);
+    };
+
+    const handlePaidClose = () => setShowP(false);
+
+
 
     const initialData: Member = {
         name: informtion.name,
-        email: informtion.email,
+        cin: informtion.cin,
         phone: informtion.phone,
         whatsappPhone: informtion.whatsappPhone,
         DateOfBirth: new Date(informtion.DateOfBirth),
@@ -66,52 +93,176 @@ const profile:React.FC<Props> = (props)=> {
 
 
 
-    useEffect(()=>{
-        getSubscriptions();
-        getMemberData();
-    },[rowId])
+
 
     const formatDate = (date: Date): string => {
         return date.toLocaleDateString(); // Adjust formatting as needed
     };
 
     const getMemberData = async ()=>{
-        await  conn.query(
-            {
-                sql: `SELECT m.* ,c.name as CategoryName FROM Members m ,Category c WHERE  c.Category_id = m.Category_id AND c.Category_id AND m.isDeleted=0  AND m.MemberID=${rowId}`,
-                timeout: 40 * 1000, // 40s
-            },
-            [0], // values to replace ?
-            await     function (err: any, results: any, fields: any) {
-                if (err) {
-                    alert(err.code);
-                    console.log(err.code);
-                } else {
-                    results.map((el : any)=>setInformtion(el) )
+        try {
+            const connection = await connectToDatabase();
 
-                }
-            });
-    }
+          const [results] = await connection.query(`SELECT m.* ,c.name as CategoryName FROM Members m ,Category c WHERE  c.Category_id = m.Category_id AND c.Category_id AND m.isDeleted=0  AND m.MemberID=${rowId}`);
+            // @ts-ignore
+                results.map((result ) => {
+
+                    setInformtion(result)
+                    });
+
+                await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+
+     }
 
 
     const getSubscriptions = async ()=>{
-        await  conn.query(
-            {
-                sql: `SELECT * FROM MALAKIDB.subscriptions s where s.MemberID = ${rowId}`,
-                timeout: 40 * 1000, // 40s
-            },
-            [0], // values to replace ?
-            await     function (err: any, results: any, fields: any) {
-                if (err) {
-                    alert(err.code);
-                    console.log(err.code);
-                } else {
+        try {
+            const connection = await connectToDatabase();
 
-                    setData(results);
-                }
-            });
+            const [results] = await connection.query(`SELECT * FROM subscriptions s where s.MemberID = ${rowId}`);
+            setData(results);
+                await closeDatabaseConnection();
+
+        } catch (error) {
+            console.error(error);
+        }
+
+    }
+    const getInsurancePayment = async ()=>{
+
+        try {
+        const connection = await connectToDatabase();
+
+        const [results] = await connection.query(`SELECT * FROM  InsurancePayments where MemberID  = ${rowId}`);
+        setInsurancePayment(results);
+        await closeDatabaseConnection();
+
+    } catch (error) {
+        console.error(error);
     }
 
+    }
+    const currentDate = new Date();
+    const yearPaymentDate = currentDate.getFullYear();
+    const monthPaymentDate = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const dayPaymentDate = String(currentDate.getDate()).padStart(2, '0');
+    const PaymentDate = `${yearPaymentDate}-${monthPaymentDate}-${dayPaymentDate}`;
+
+    const handelInsurance = async ()=>{
+        if (selectedOption === "Paid"){
+            try {
+                const connection = await connectToDatabase();
+                const values2 = [
+                    rowId,
+                    200,
+                    PaymentDate,
+                    'Paid'
+
+                ];
+                const InsurancePayments = `
+                              INSERT INTO InsurancePayments (MemberID,PaymentAmount,PaymentDate,Status)
+                              VALUES (?, ?, ?,?);
+                            `;
+
+                 await connection.query(InsurancePayments, values2);
+               await getInsurancePayment();
+
+
+            } catch (error) {
+                console.error(error);
+            }
+
+        }
+
+        if (selectedOption === "Partial"){
+            if (paymentValue < 200 && paymentValue >0){
+                try {
+                    const connection = await connectToDatabase();
+                    const values2 = [
+                        rowId,
+                        paymentValue,
+                        PaymentDate,
+                        'Partial'
+                    ];
+                    const InsurancePayments = `
+                              INSERT INTO InsurancePayments (MemberID,PaymentAmount,PaymentDate,Status)
+                              VALUES (?, ?, ?,?);
+                            `;
+
+                    await connection.query(InsurancePayments, values2);
+                   await getInsurancePayment();
+
+
+                } catch (error) {
+                    console.error(error);
+                }
+            }else{
+                setError("please add value under the 200 dh ")
+            }
+        }
+        setShowPaid(false);
+    }
+    console.log('InsurancePayment.PaymentID',InsurancePayment[0]?.PaymentID)
+    const  handelPartial = async ()=>{
+
+        try {
+            const connection = await connectToDatabase();
+
+            const InsurancePayments = `
+                              UPDATE InsurancePayments SET PaymentAmount = ${200} ,PaymentDate = '${PaymentDate}',  Status = 'Paid'  WHERE PaymentID = ${InsurancePayment[0]?.PaymentID} `;
+
+            await connection.query(InsurancePayments);
+
+
+             await getInsurancePayment();
+            setShowPartial(false);
+        } catch (error) {
+            console.error(error);
+        }
+
+
+
+    }
+   const  getDeleteId = (id :number)=>{
+        setDeleteID(id);
+        setShowD(true)
+    }
+     const  handleDelete = async ()=>{
+
+        try {
+            const connection = await connectToDatabase();
+
+            const InsurancePayments = ` delete from subscriptions where subscription_id =${DeleteID}`;
+
+            await connection.query(InsurancePayments);
+
+
+             await getSubscriptions();
+            setShowD(false);
+        } catch (error) {
+            console.error(error);
+        }
+
+
+
+    }
+
+
+    useEffect(()=>{
+        getSubscriptions();
+        getMemberData();
+        getInsurancePayment();
+    },[rowId])
+
+    const handelId = (id:number)=>{
+        setIdS(id);
+
+        setShowP(true);
+    }
     const columns = React.useMemo(
         () => [
             {
@@ -134,13 +285,43 @@ const profile:React.FC<Props> = (props)=> {
             {
                 Header: "payment_status",
                 accessor: "payment_status",
-                Cell : ({ value }: { value: string }) =>{
+                Cell : ({ value , row }: { value: string , row?: any }) =>{
                     return <>
+
+
+
                         { value === "unpaid" ?
-                            <span className="   p-2 px-4 rounded  fs-6" style={{ backgroundColor:'#ffe2e5' ,color:'#f74e60'}}>{value}</span>
+                            <Button className="p-2 px-4 rounded  fs-6  border-0 shadow-sm"
+                                    style={{ backgroundColor:'#ffe2e5' ,color:'#f74e60'}}
+                                    onClick={()=>{handelId(row.original.subscription_id)}} >
+                                {value}
+                            </Button>
+
                             :
                             <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#caf7f5' ,color:'#1bc5be'}}> {value}</span>
                         }
+
+                    </>
+
+                }
+
+            },
+            {
+                Header: "Action",
+                accessor: "",
+                Cell : ({ row }: {   row?: any }) =>{
+
+                    return <>
+
+                        {row?.original.payment_status === "unpaid" ?
+
+                                <Button variant={"light"}  onClick={()=>getDeleteId(row?.original.subscription_id)}>
+                                    <DeleteIcon  style={{ color: '#f74e60' }}/>
+                                </Button>
+
+
+                            : null }
+
                     </>
 
                 }
@@ -196,7 +377,7 @@ const profile:React.FC<Props> = (props)=> {
                                                             <Form.Label >Name</Form.Label>
                                                         </Form.Group>
                                                         <Form.Group >
-                                                            <Form.Label>Email</Form.Label>
+                                                            <Form.Label>Cin</Form.Label>
                                                         </Form.Group>
                                                         <Form.Group >
                                                             <Form.Label>Phone</Form.Label>
@@ -250,7 +431,7 @@ const profile:React.FC<Props> = (props)=> {
                                                         <Form.Label>{initialData.name}</Form.Label>
                                                     </Form.Group>
                                                     <Form.Group  >
-                                                        <Form.Label>{initialData.email}</Form.Label>
+                                                        <Form.Label>{initialData.cin}</Form.Label>
                                                     </Form.Group >
                                                     <Form.Group  >
                                                         <Form.Label>{initialData.name}</Form.Label>
@@ -320,21 +501,86 @@ const profile:React.FC<Props> = (props)=> {
 
                                         <div className={'py-5 d-flex'}>
                                             <div  className={'px-5'}>
-                                        <Paper className={classes.root}>
-                                        <Typography variant="h5" component="h3">
-                                            Assurance  :    <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#caf7f5' ,color:'#1bc5be'}}> Paid</span>
-                                        </Typography>
+                                       {InsurancePayment.length === 0 ?
+                                                 <>
+                                                 <Paper className={classes.root}>
+                                                <Typography variant="h5" component="h3">
+                                                    <div className={'d-flex justify-content-around align-items-center'}>
+                                             <span className={'px-2'}>   Assurance  :   </span>    <Button className=" p-2 rounded  px-4    fs-6  border-0 shadow-sm   fs-6"
+                                                                        style={{ backgroundColor:'#ffe2e5' ,color:'#f74e60'}}
+                                                onClick={()=>setShowPaid(true)}
+                                                > Unpaid</Button>
+                                                        { showPaid ?  <>
 
-                                        </Paper>
+                                                     <Form.Group controlId="InsurancePayment" className={'px-5'}>
+                                                         <Form.Label>Insurance Payment</Form.Label>
+                                                         <Form.Control as="select"    onChange={handleOptionChange}>
+                                                             <option value="">Select Payment</option>
+                                                             <option value="Paid">Paid</option>
+                                                             <option value="Partial">Partial</option>
+                                                         </Form.Control>
+                                                     </Form.Group>
+                                                            <div>
 
-                                            </div>
-                                            <div>
-                                                <Paper className={classes.root}>
-                                                    <Typography variant="h5" component="h3">
-                                                        Assurance  :    <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#caf7f5' ,color:'#1bc5be'}}> Paid</span>
-                                                    </Typography>
 
+                                                     {selectedOption === 'Partial' && (
+                                                         <Form.Group controlId="InsuranceValue">
+                                                             <Form.Label>  Payment value</Form.Label>
+                                                             <Form.Control type="number" max={199}  onChange={(e :any)=>{ setPaymentValue(e.target.value)}}  />
+                                                         </Form.Group>
+                                                     )}
+                                                        <h6 className={'text-danger'}>{error}</h6>
+                                                            </div>
+                                                         <div className={'px-5'} >
+                                                             <Button className="  rounded  px-4  btn-dark border-0 shadow-sm h-10   fs-6"
+                                                                     onClick={()=>handelInsurance()}
+                                                             > Valide</Button>
+                                                         </div>
+
+                                                            </>
+                                                    : null }
+                                                        </div>
+                                                 </Typography>
+                                                     </Paper>
+                                    </>
+                                           :
+
+                                          InsurancePayment.map((el :any,index : any)=>{
+                                                console.log("----el---",el)
+                                                return <>
+                                                <Paper className={classes.root} key={el.PaymentID} style={{display:"flex"}}>
+
+                                                <Typography variant="h5" component="h3" className={"px-2"}>
+                                                    Assurance  :   {  el.Status === "Paid" ? <Button className=" p-2 rounded  px-4    fs-6  border-0 shadow-sm  fs-6" style={{ backgroundColor:'#caf7f5' ,color:'#1bc5be'}}> {el.Status}</Button> : el.Status === "Partial" ?
+                                                    <> <Button onClick={()=>{setShowPartial(true)}}
+                                                               className="  p-2 rounded  px-4    fs-6  border-0 shadow-sm   fs-6"
+                                                               style={{ backgroundColor:'#fff4de' ,color:'#ffa800'}}> {el.Status}</Button>
+
+                                                       </>
+                                                    : null}
+                                                </Typography>
+
+                                                <Typography variant="h5" component="h3" className={"px-2"}>
+                                                    date  :   {  el.Status === "Paid" ? <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#caf7f5' ,color:'#1bc5be'}}> {formatDate(new Date(el.PaymentDate))}</span> : el.Status === "Partial" ? <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#fff4de' ,color:'#ffa800'}}>{formatDate(new Date(el.PaymentDate))}</span> : null}
+                                                </Typography>
+
+                                                <Typography variant="h5" component="h3" className={"px-2"}>
+                                                    Payment Amount  :   {  el.Status === "Paid" ? <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#caf7f5' ,color:'#1bc5be'}}>  {el.PaymentAmount} Dh</span> : el.Status === "Partial" ? <span className=" p-2 rounded   fs-6" style={{ backgroundColor:'#fff4de' ,color:'#ffa800'}}>  {el.PaymentAmount} Dh</span> : null}
+                                                </Typography>
+                                                    {showPartial  ?  <div className={'px-3  d-flex align-items-center'}>
+                                                        <h6 className={'text-success pe-3'}>change to Paid </h6>
+                                                        <Button onClick={()=>{handelPartial()}}
+                                                                className="  p-2 rounded  px-4 btn  btn-dark   fs-6  border-0 shadow-sm   fs-6"
+                                                        > Valide</Button>
+                                                    </div> : null }
                                                 </Paper>
+                                                </>
+                                            })
+
+
+
+                                        }
+
                                             </div>
 
                                             </div>
@@ -382,6 +628,45 @@ const profile:React.FC<Props> = (props)=> {
 
 
             </Form>
+        </Modal>
+        <PaidModal show={showP} handeldata={getSubscriptions} id={IdS} idMember={rowId} onHide={ handlePaidClose} />
+        <Modal
+            show={showD}
+            size="lg"
+            aria-labelledby="contained-modal-title-vcenter"
+            centered
+            scrollable
+        >
+            <Modal.Header>
+                <Modal.Title id="contained-modal-title-vcenter">
+                    Delete subscriptions
+                </Modal.Title>
+                <div className="btn btn-dark text-white" onClick={() => setShowD(false)}>
+                    x
+                </div>
+            </Modal.Header>
+            <Modal.Body>
+
+                <h3 className="d-flex justify-content-center pt-5">
+                    Are you sure you want to delete?
+                </h3>
+            </Modal.Body>
+            <Modal.Footer className="d-flex justify-content-center">
+                <button
+                    onClick={() => handleDelete()}
+                    type="button"
+                    className="btn btn-warning p-2 text-dark "
+                >
+                    Delete this subscription
+                </button>
+                <button
+                    onClick={() =>setShowD(false)}
+                    type="button"
+                    className="btn btn-light text-dark"
+                >
+                    Cancel
+                </button>
+            </Modal.Footer>
         </Modal>
     </>
 }

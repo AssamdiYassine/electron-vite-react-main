@@ -1,41 +1,35 @@
 import React, { useState as UseState } from "react";
 import { Modal } from "react-bootstrap";
+import { connectToDatabase, closeDatabaseConnection } from '../../../../../Documents/electron-vite-react-main/src/database';
 
 import SVG from "react-inlinesvg";
- import  worninf from '../../assets/warning.svg'
+ import  worninf from '../../../public/verifier.png'
 interface DeleteDemoModalProps {
     show: boolean;
     onHide: () => void;
     id?: any;
-    handeldata?: () => void;
+    handeldata: () => void;
     conn?:any;
 }
 
 const index: React.FC<DeleteDemoModalProps> = (props) => {
-    const { show,handeldata , onHide, id, conn } = props;
+    const { show,handeldata , onHide, id } = props;
  // You might need to specify the type for useParams()
 
     const handleDelete = async () => {
-
         try {
-            await  conn.query(
-                {
-                    sql: `Update Members set isdeleted = 1 where MemberID =${id}   `,
-                    timeout: 40 * 1000, // 40s
-                },
-                [0], // values to replace ?
-                await     function (err: any, results: any, fields: any) {
-                    if (err) {
-                        alert(err.code);
-                        console.log(err.code);
-                    }
-                });
+            const connection = await connectToDatabase();
+
+            await connection.query(`Update Members set isdeleted = 1 where MemberID =${id}  `);
+
             onHide();
             handeldata();
 
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
+
+
     };
 
     return (

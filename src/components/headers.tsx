@@ -1,4 +1,4 @@
-import Clock from "@/components/clock";
+import Clock from "./clock";
 import React from "react";
  interface LayoutProps{
 
